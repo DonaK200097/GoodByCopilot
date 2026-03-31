@@ -17,17 +17,10 @@ jobs:
         shell: pwsh
         run: |
           $version = "2.0.19"
-          $installer = "AutoHotkey_$version`_setup.exe"
-          Invoke-WebRequest -Uri "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$version/$installer" -OutFile $installer
-          Start-Process -FilePath (Join-Path $PWD $installer) -ArgumentList "/S" -Wait
-
-      - name: Install Ahk2Exe
-        shell: pwsh
-        run: |
-          $ahk2exeUrl = "https://github.com/AutoHotkey/Ahk2Exe/releases/latest/download/Ahk2Exe.exe"
-          $compilerDir = Join-Path $env:ProgramFiles "AutoHotkey\Compiler"
-          New-Item -ItemType Directory -Force -Path $compilerDir | Out-Null
-          Invoke-WebRequest -Uri $ahk2exeUrl -OutFile (Join-Path $compilerDir "Ahk2Exe.exe")
+          $zip = "AutoHotkey_$version.zip"
+          $installRoot = Join-Path $env:ProgramFiles "AutoHotkey"
+          Invoke-WebRequest -Uri "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$version/$zip" -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath $installRoot -Force
 
       - name: Compile AHK v2 binaries
         shell: pwsh
