@@ -19,9 +19,9 @@ $releaseRoot = if ([string]::IsNullOrWhiteSpace($Version)) {
     Join-Path $distRoot (Join-Path $Version "GoodByCopilot")
 }
 $bundleName = if ([string]::IsNullOrWhiteSpace($Version)) {
-    "GoodByCopilot-release.zip"
+    "GoodByCopilot_vrelease.zip"
 } else {
-    "GoodByCopilot-$Version.zip"
+    "GoodByCopilot_$Version.zip"
 }
 $bundlePath = Join-Path $distRoot $bundleName
 
