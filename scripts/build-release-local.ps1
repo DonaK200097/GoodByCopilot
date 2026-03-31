@@ -20,6 +20,10 @@ $bundleName = if ([string]::IsNullOrWhiteSpace($Version)) {
 }
 $bundlePath = Join-Path $distRoot $bundleName
 
+if (Test-Path -LiteralPath $releaseRoot) {
+    Remove-Item -LiteralPath $releaseRoot -Recurse -Force
+}
+
 if (-not (Test-Path -LiteralPath $Ahk2ExePath)) {
     throw "Ahk2Exe not found: $Ahk2ExePath"
 }
@@ -48,7 +52,6 @@ foreach ($path in @((Join-Path $repoRoot "GoodByCopilot.exe"), (Join-Path $repoR
 Copy-Item -LiteralPath (Join-Path $repoRoot "GoodByCopilot.exe") -Destination (Join-Path $releaseRoot "GoodByCopilot.exe") -Force
 New-Item -ItemType Directory -Force -Path (Join-Path $releaseRoot "Core") | Out-Null
 Copy-Item -LiteralPath (Join-Path $repoRoot "CoreGBC.exe") -Destination (Join-Path $releaseRoot "Core\CoreGBC.exe") -Force
-
 $resourceDirs = @(
     @{ Source = (Join-Path $repoRoot "Core\default"); Destination = (Join-Path $releaseRoot "Core\default") },
     @{ Source = (Join-Path $repoRoot "Core\LangPackage"); Destination = (Join-Path $releaseRoot "Core\LangPackage") }
