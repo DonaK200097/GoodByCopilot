@@ -15,7 +15,6 @@ configPath := coreDir "\config.ini"
 listPath   := coreDir "\list.ini"
 g_frWizardDone := false
 g_frWizardResult := ""
-g_defaultPwaSeeded := false
 g_suppressSiteChange := false
 g_enginePid := 0
 global ctx := Map()
@@ -551,7 +550,7 @@ RewriteServiceExeNamesForBrowser(browserPath) {
 }
 
 SeedPwaFromDefault(browserPath) {
-    global pwaDir, listPath, configPath, defaultDir, g_defaultPwaSeeded
+    global pwaDir, listPath, defaultDir
     if (browserPath = "" || !FileExist(browserPath))
         return false
     if !DirExist(pwaDir)
@@ -611,9 +610,6 @@ SeedPwaFromDefault(browserPath) {
             } catch {
             }
         }
-    }
-    if (seeded > 0) {
-        g_defaultPwaSeeded := true
     }
     return changed
 }
@@ -708,7 +704,7 @@ AppModeArgsForUrl(url) {
 }
 
 TrySeedDefaultPwaFromDefaultFolder() {
-    global configPath, listPath, pwaDir, defaultDir, g_defaultPwaSeeded
+    global configPath, listPath, pwaDir, defaultDir
     if !DirExist(defaultDir)
         return
     hasLinks := false
@@ -729,7 +725,7 @@ TrySeedDefaultPwaFromDefaultFolder() {
         browserPath := GetFallbackBrowserExePath()
     if (browserPath = "" || !FileExist(browserPath))
         return
-    if (hasLinks && g_defaultPwaSeeded)
+    if (hasLinks)
         return
     SeedPwaFromDefault(browserPath)
 }
@@ -1097,7 +1093,7 @@ NeedsFirstRunHotkeyChoice() {
 }
 
 WriteFirstRunHotkeyBaseline(chosenHotkey, autoStart, showTray, memoryOn) {
-    global configPath, listPath, serviceList, emptyText, g_defaultPwaSeeded
+    global configPath, listPath, serviceList, emptyText
     lastSvc := GetPreferredDefaultService(serviceList, emptyText)
     IniWrite(chosenHotkey, configPath, "Settings", "Hotkey")
     IniWrite("True", configPath, "Settings", "FirstRunHotkeyDone")
@@ -1106,8 +1102,6 @@ WriteFirstRunHotkeyBaseline(chosenHotkey, autoStart, showTray, memoryOn) {
     IniWrite(showTray ? "True" : "False", configPath, "Settings", "ShowTray")
     IniWrite(memoryOn ? "True" : "False", configPath, "Settings", "MemoryPurge")
     IniWrite("False", configPath, "Settings", "ActionClose")
-    if (g_defaultPwaSeeded)
-        IniWrite("True", configPath, "Settings", "SeedDefaultPwaDone")
     if (lastSvc != emptyText) {
         try {
             finalTitle := IniRead(listPath, lastSvc, "title", lastSvc)
