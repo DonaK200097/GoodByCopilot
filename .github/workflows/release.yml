@@ -22,6 +22,10 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$version/$zip" -OutFile $zip
           Expand-Archive -Path $zip -DestinationPath $installRoot -Force
 
+          $ahk2exeZip = "Ahk2Exe.zip"
+          Invoke-WebRequest -Uri "https://github.com/AutoHotkey/Ahk2Exe/releases/latest/download/$ahk2exeZip" -OutFile $ahk2exeZip
+          Expand-Archive -Path $ahk2exeZip -DestinationPath $installRoot -Force
+
       - name: Compile AHK v2 binaries
         shell: pwsh
         run: |
@@ -29,9 +33,13 @@ jobs:
           if (-not (Test-Path -LiteralPath $compiler)) {
             throw "Compiler not found: $compiler"
           }
+          $base = Join-Path $env:ProgramFiles "AutoHotkey\AutoHotkey64.exe"
+          if (-not (Test-Path -LiteralPath $base)) {
+            throw "Base executable not found: $base"
+          }
 
-          & $compiler /in "GoodByCopilot.ahk" /out "GoodByCopilot.exe"
-          & $compiler /in "Core\CoreGBC.ahk" /out "CoreGBC.exe"
+          & $compiler /in "GoodByCopilot.ahk" /out "GoodByCopilot.exe" /base "$base"
+          & $compiler /in "Core\CoreGBC.ahk" /out "CoreGBC.exe" /base "$base"
 
       - name: Build release zip
         shell: pwsh
