@@ -22,8 +22,14 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$version/$zip" -OutFile $zip
           Expand-Archive -Path $zip -DestinationPath $installRoot -Force
 
-          $ahk2exeZip = "Ahk2Exe.zip"
-          Invoke-WebRequest -Uri "https://github.com/AutoHotkey/Ahk2Exe/releases/latest/download/$ahk2exeZip" -OutFile $ahk2exeZip
+          $ahk2exeRelease = Invoke-RestMethod -Headers @{ "User-Agent" = "GitHubActions" } -Uri "https://api.github.com/repos/AutoHotkey/Ahk2Exe/releases/latest"
+          $ahk2exeAsset = $ahk2exeRelease.assets | Where-Object { $_.name -like "Ahk2Exe*.zip" } | Select-Object -First 1
+          if (-not $ahk2exeAsset) {
+            throw "Could not find an Ahk2Exe zip asset in the latest release."
+          }
+
+          $ahk2exeZip = $ahk2exeAsset.name
+          Invoke-WebRequest -Uri $ahk2exeAsset.browser_download_url -OutFile $ahk2exeZip
           Expand-Archive -Path $ahk2exeZip -DestinationPath $installRoot -Force
 
       - name: Compile AHK v2 binaries
