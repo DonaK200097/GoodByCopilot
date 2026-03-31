@@ -9,9 +9,9 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $distRoot = Join-Path $repoRoot "dist"
 $releaseRoot = if ([string]::IsNullOrWhiteSpace($Version)) {
-    Join-Path $distRoot "release"
+    Join-Path $distRoot "release\GoodByCopilot"
 } else {
-    Join-Path $distRoot $Version
+    Join-Path $distRoot (Join-Path $Version "GoodByCopilot")
 }
 $bundleName = if ([string]::IsNullOrWhiteSpace($Version)) {
     "GoodByCopilot-release.zip"
@@ -69,7 +69,22 @@ if (Test-Path -LiteralPath $bundlePath) {
     Remove-Item -LiteralPath $bundlePath -Force
 }
 
-Compress-Archive -Path (Join-Path $releaseRoot "*") -DestinationPath $bundlePath -Force
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+$zip = [System.IO.Compression.ZipFile]::Open($bundlePath, [System.IO.Compression.ZipArchiveMode]::Create)
+try {
+    $rootName = Split-Path -Leaf $releaseRoot
+    $basePath = (Split-Path -Parent $releaseRoot).TrimEnd('\')
+
+    foreach ($file in Get-ChildItem -LiteralPath $releaseRoot -Recurse -File) {
+        $relative = $file.FullName.Substring($basePath.Length + 1)
+        $entryName = $relative -replace '\\', '/'
+        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $file.FullName, $entryName) | Out-Null
+    }
+} finally {
+    $zip.Dispose()
+}
 
 Write-Host "Created release bundle:"
 Write-Host $bundlePath

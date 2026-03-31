@@ -76,7 +76,7 @@ Release archives are built locally from compiled binaries.
 2. Compile `Core\CoreGBC.ahk` to `CoreGBC.exe`.
 3. Run `scripts\build-release-local.ps1`.
 
-The release zip includes:
+The release zip includes a top-level `GoodByCopilot/` folder containing:
 
 - `GoodByCopilot.exe`
 - `Core\CoreGBC.exe`
@@ -163,7 +163,7 @@ GoodByCopilot - это небольшая утилита на AutoHotkey v2 дл
 2. Скомпилируйте `Core\CoreGBC.ahk` в `CoreGBC.exe`.
 3. Запустите `scripts\build-release-local.ps1`.
 
-В архив релиза входят:
+В архиве релиза есть верхняя папка `GoodByCopilot/`, внутри которой лежат:
 
 - `GoodByCopilot.exe`
 - `Core\CoreGBC.exe`
