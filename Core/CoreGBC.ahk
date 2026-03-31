@@ -4,7 +4,6 @@
 
 configPath  := A_ScriptDir "\config.ini"
 sessionPath := A_ScriptDir "\SessionHwnd.ini"
-pwaDir      := A_ScriptDir "\PWA"
 soundFile   := A_ScriptDir "\Sounds\Click.mp3"
 hotkeyErrorPath := A_ScriptDir "\HotkeyError.ini"
 mainAppDir  := A_ScriptDir "\.."
@@ -16,6 +15,36 @@ NormalizeExeName(s) {
     if (s = "")
         return ""
     return RegExReplace(s, "i)\.exe$", "")
+}
+
+BrowserPwaFolderNameFromPath(browserPath, exeName := "") {
+    path := Trim(String(browserPath))
+    if (path != "") {
+        SplitPath(path, &name)
+        base := NormalizeExeName(name)
+    } else {
+        base := NormalizeExeName(exeName)
+    }
+    if (base = "")
+        return "DefaultBrowser_PWA"
+    switch StrLower(base) {
+        case "msedge":
+            return "Microsoft Edge_PWA"
+        case "chrome":
+            return "Google Chrome_PWA"
+        case "brave":
+            return "Brave_PWA"
+        case "vivaldi":
+            return "Vivaldi_PWA"
+        case "opera":
+            return "Opera_PWA"
+        case "firefox":
+            return "Firefox_PWA"
+        case "librewolf":
+            return "LibreWolf_PWA"
+        default:
+            return base "_PWA"
+    }
 }
 
 NormalizeHotkeyForRegistration(hk) {
@@ -41,6 +70,15 @@ try {
 } catch {
     ExitApp()
 }
+
+browserPath := ""
+try browserPath := Trim(IniRead(configPath, "Settings", "BrowserExe", ""))
+if (browserPath = "" || !FileExist(browserPath)) {
+    browserPath := ""
+}
+pwaDir := A_ScriptDir "\PWA\" BrowserPwaFolderNameFromPath(browserPath, exeName)
+if !DirExist(pwaDir)
+    DirCreate(pwaDir)
 
 A_IconHidden := !showTray
 

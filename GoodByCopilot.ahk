@@ -9,7 +9,6 @@ SetWorkingDir(A_ScriptDir)
 #Include %A_ScriptDir%\Core\Theme.ahk
 
 coreDir    := A_ScriptDir "\Core"
-pwaDir     := coreDir "\PWA"
 defaultDir := coreDir "\default"
 langDir    := coreDir "\LangPackage"
 configPath := coreDir "\config.ini"
@@ -33,7 +32,7 @@ global UI_MAIN_TILE_GAP := 2
 global g_customButtons := Map()
 global g_hoveredButtonHwnd := 0
 mainControlNames := ["BtnServiceList", "BtnSettings", "StatusBar"]
-settingsControlNames := ["BtnAdd", "BtnDel", "ActionText", "ThemeText", "BtnActionSelect", "BtnThemeSelect", "HkLabel", "BtnCap", "AutoStart", "ShowTray", "MemoryPurge", "BtnReset"]
+settingsControlNames := ["BtnAdd", "BtnDel", "ActionText", "ThemeText", "BtnActionSelect", "BtnThemeSelect", "BrowserText", "BtnBrowserSelect", "HkLabel", "BtnCap", "AutoStart", "ShowTray", "MemoryPurge", "BtnReset"]
 global g_serviceIds := []
 global g_serviceSelectIdx := 1
 global g_actionSelectIdx := 1
@@ -46,6 +45,10 @@ global g_layoutTransition := false
 global g_statusBarMode := ""
 global g_statusBarBaseText := ""
 global g_statusBarHintApplied := false
+global g_browserPaths := []
+global g_browserLabels := []
+global g_browserSelectIdx := 1
+global pwaDir := coreDir "\PWA"
 
 ; Button / list row icons (Unicode; Windows draws emoji & symbols via Segoe UI / emoji fonts)
 global G_IC_SVC := Chr(0x1F310) A_Space
@@ -379,7 +382,250 @@ GetBrowserExeFromHint(hint) {
     return ""
 }
 
+BrowserDisplayNameFromExePath(exePath) {
+    if (exePath = "")
+        return ""
+    SplitPath(exePath, &name)
+    base := NormalizeExeName(name)
+    if (base = "")
+        return ""
+    switch StrLower(base) {
+        case "msedge":
+            return "Microsoft Edge"
+        case "chrome":
+            return "Google Chrome"
+        case "brave":
+            return "Brave"
+        case "vivaldi":
+            return "Vivaldi"
+        case "opera":
+            return "Opera"
+        case "firefox":
+            return "Firefox"
+        case "librewolf":
+            return "LibreWolf"
+        default:
+            return base
+    }
+}
+
+BrowserPwaFolderNameFromPath(browserPath) {
+    path := Trim(String(browserPath))
+    if (path = "")
+        return "DefaultBrowser_PWA"
+    SplitPath(path, &name)
+    base := NormalizeExeName(name)
+    if (base = "")
+        return "DefaultBrowser_PWA"
+    switch StrLower(base) {
+        case "msedge":
+            return "Microsoft Edge_PWA"
+        case "chrome":
+            return "Google Chrome_PWA"
+        case "brave":
+            return "Brave_PWA"
+        case "vivaldi":
+            return "Vivaldi_PWA"
+        case "opera":
+            return "Opera_PWA"
+        case "firefox":
+            return "Firefox_PWA"
+        case "librewolf":
+            return "LibreWolf_PWA"
+        default:
+            return base "_PWA"
+    }
+}
+
+SetPwaDirForBrowser(browserPath) {
+    global coreDir, pwaDir
+    newDir := coreDir "\PWA\" BrowserPwaFolderNameFromPath(browserPath)
+    pwaDir := newDir
+    if !DirExist(pwaDir)
+        DirCreate(pwaDir)
+}
+
+ScanInstalledBrowsers() {
+    out := []
+    seen := Map()
+    for name in ["msedge.exe", "chrome.exe", "brave.exe", "vivaldi.exe", "opera.exe", "firefox.exe", "librewolf.exe"] {
+        try BrowserAddCandidate(out, seen, RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\" name, ""))
+        catch {
+        }
+    }
+    localAppData := EnvGet("LOCALAPPDATA")
+    for dir in [A_ProgramFiles, A_ProgramFiles " (x86)", localAppData] {
+        if (dir = "" || !DirExist(dir))
+            continue
+        for sub in ["Microsoft\Edge\Application\msedge.exe", "Google\Chrome\Application\chrome.exe", "BraveSoftware\Brave-Browser\Application\brave.exe", "Vivaldi\Application\vivaldi.exe", "Opera\launcher.exe", "Mozilla Firefox\firefox.exe", "LibreWolf\librewolf.exe"] {
+            BrowserAddCandidate(out, seen, dir "\" sub)
+        }
+    }
+    return out
+}
+
+BrowserAddCandidate(out, seen, p) {
+    p := Trim(String(p))
+    if (p = "" || !FileExist(p))
+        return
+    key := StrLower(p)
+    if seen.Has(key)
+        return
+    seen[key] := true
+    out.Push(p)
+}
+
+BuildBrowserOptions() {
+    global g_browserPaths, g_browserLabels
+    g_browserPaths := ScanInstalledBrowsers()
+    g_browserLabels := []
+    for p in g_browserPaths
+        g_browserLabels.Push(BrowserDisplayNameFromExePath(p))
+    return g_browserLabels
+}
+
+BrowserIndexFromConfig(browserPath) {
+    global g_browserPaths
+    target := StrLower(Trim(String(browserPath)))
+    if (target = "")
+        return 1
+    for i, p in g_browserPaths {
+        if (StrLower(p) = target)
+            return i
+    }
+    return 1
+}
+
+BrowserHintFromPath(browserPath) {
+    p := StrLower(Trim(String(browserPath)))
+    if (p = "")
+        return ""
+    SplitPath(p, &name)
+    switch NormalizeExeName(name) {
+        case "msedge":
+            return "edge"
+        case "chrome":
+            return "chrome"
+        case "brave":
+            return "brave"
+        case "vivaldi":
+            return "vivaldi"
+        case "opera":
+            return "opera"
+        case "firefox":
+            return "firefox"
+        case "librewolf":
+            return "librewolf"
+        default:
+            return NormalizeExeName(name)
+    }
+}
+
+BrowserCaptionText() {
+    return GetLangTextOrDefault("Main", "BrowserLabel", "Браузер:", "Browser:")
+}
+
+BrowserPathFromIndex(idx) {
+    global g_browserPaths
+    i := Integer(idx)
+    if (i < 1 || i > g_browserPaths.Length)
+        return ""
+    return g_browserPaths[i]
+}
+
+RewriteServiceExeNamesForBrowser(browserPath) {
+    global listPath, configPath
+    if (browserPath = "" || !FileExist(browserPath))
+        return
+    exeName := ExeNameFromExePath(browserPath)
+    if (exeName = "")
+        return
+    if FileExist(listPath) {
+        for section in GetServicesList() {
+            if (section = "")
+                continue
+            try IniWrite(exeName, listPath, section, "exe")
+        }
+    }
+    try IniWrite(exeName, configPath, "Settings", "ExeName")
+}
+
+SeedPwaFromDefault(browserPath) {
+    global pwaDir, listPath, configPath, defaultDir, g_defaultPwaSeeded
+    if (browserPath = "" || !FileExist(browserPath))
+        return false
+    if !DirExist(pwaDir)
+        DirCreate(pwaDir)
+    hasLinks := false
+    try {
+        Loop Files, pwaDir "\*.lnk" {
+            hasLinks := true
+            break
+        }
+    }
+    if (hasLinks)
+        return false
+    changed := false
+    seeded := 0
+    if DirExist(defaultDir) {
+        loop files, defaultDir "\*.url" {
+            id := SubStr(A_LoopFileName, 1, StrLen(A_LoopFileName) - 4)
+            if (id = "")
+                continue
+            urlPath := A_LoopFileFullPath
+            try {
+                url := Trim(IniRead(urlPath, "InternetShortcut", "URL", ""))
+            } catch {
+                url := ""
+            }
+            if (url = "")
+                continue
+            metaPath := defaultDir "\" id ".ini"
+            title := id
+            exeHint := ""
+            if FileExist(metaPath) {
+                try title := Trim(IniRead(metaPath, "Service", "Title", title))
+                catch {
+                }
+                try exeHint := Trim(IniRead(metaPath, "Service", "Exe", ""))
+                catch {
+                    exeHint := ""
+                }
+            }
+            args := AppModeArgsForUrl(url)
+            if (args = "")
+                continue
+            browserExe := browserPath
+            if (browserExe = "" || !FileExist(browserExe))
+                continue
+            exeName := ExeNameFromExePath(browserExe)
+            if (exeHint != "" && StrLower(exeHint) != "default" && StrLower(exeHint) != "auto")
+                exeName := ExeNameFromExePath(ResolveBrowserExeForSeed(exeHint))
+            try {
+                FileCreateShortcut(browserExe, pwaDir "\" id ".lnk", , args)
+                IniWrite(title, listPath, id, "title")
+                IniWrite(id, listPath, id, "file")
+                IniWrite(exeName, listPath, id, "exe")
+                seeded++
+                changed := true
+            } catch {
+            }
+        }
+    }
+    if (seeded > 0) {
+        g_defaultPwaSeeded := true
+    }
+    return changed
+}
+
 ResolveBrowserExeForSeed(exeHint) {
+    global configPath
+    try {
+        stored := Trim(IniRead(configPath, "Settings", "BrowserExe", ""))
+        if (stored != "" && FileExist(stored))
+            return stored
+    } catch {
+    }
     p := GetBrowserExeFromHint(exeHint)
     if (p != "")
         return p
@@ -387,6 +633,56 @@ ResolveBrowserExeForSeed(exeHint) {
     if (p != "")
         return p
     return GetFallbackBrowserExePath()
+}
+
+SetBrowserPickerCaption(guiObj, idx) {
+    global g_browserLabels, g_browserPaths
+    i := Integer(idx)
+    if (i < 1 || i > g_browserLabels.Length)
+        return
+    path := g_browserPaths[i]
+    text := g_browserLabels[i]
+    if (text = "")
+        text := path
+    SetCtrlCaption(guiObj["BtnBrowserSelect"], G_IC_WIN BrowserCaptionText() " " text)
+}
+
+BrowserPickerSetItems(guiObj, selectedIdx := 1) {
+    global g_browserLabels, g_browserPaths, g_browserSelectIdx
+    lb := guiObj["BrowserListBox"]
+    lb.Delete()
+    if (g_browserLabels.Length > 0)
+        lb.Add(g_browserLabels)
+    g_browserSelectIdx := Max(1, Min(selectedIdx, g_browserLabels.Length > 0 ? g_browserLabels.Length : 1))
+    if (g_browserLabels.Length > 0) {
+        lb.Value := g_browserSelectIdx
+        SetBrowserPickerCaption(guiObj, g_browserSelectIdx)
+    } else {
+        SetCtrlCaption(guiObj["BtnBrowserSelect"], G_IC_WIN BrowserCaptionText() " " GetLangText("Main", "EmptyServiceList"))
+    }
+    lb.Visible := false
+    try PositionPickerList(guiObj, "BtnBrowserSelect", "BrowserListBox", 5, 24)
+}
+
+EnsureRuntimeBrowserSync() {
+    global configPath
+    browserPath := ""
+    try browserPath := Trim(IniRead(configPath, "Settings", "BrowserExe", ""))
+    if (browserPath = "" || !FileExist(browserPath))
+        return
+    SetPwaDirForBrowser(browserPath)
+}
+
+ToggleBrowserList(*) {
+    global g_browserLabels, g_browserSelectIdx, G_IC_DOT
+    OpenPickerPopup("browser", "BtnBrowserSelect", g_browserLabels, g_browserSelectIdx, (idx) => OnBrowserPickerChosen(idx), G_IC_DOT)
+}
+
+OnBrowserPickerChosen(idx) {
+    global myGui, g_browserSelectIdx
+    g_browserSelectIdx := idx
+    SetBrowserPickerCaption(myGui, idx)
+    QueueAutoApplySettings()
 }
 
 NormalizeExeName(s) {
@@ -415,78 +711,27 @@ TrySeedDefaultPwaFromDefaultFolder() {
     global configPath, listPath, pwaDir, defaultDir, g_defaultPwaSeeded
     if !DirExist(defaultDir)
         return
-    if !IsServiceListEmpty()
-        return
-    if FileExist(configPath) {
+    hasLinks := false
+    if DirExist(pwaDir) {
         try {
-            if (StrLower(Trim(IniRead(configPath, "Settings", "SeedDefaultPwaDone", ""))) = "true")
-                return
-        } catch {
-        }
-    }
-    seeded := 0
-    defaultBrowserCache := ""
-    loop files, defaultDir "\*.url" {
-        id := SubStr(A_LoopFileName, 1, StrLen(A_LoopFileName) - 4)
-        if (id = "")
-            continue
-        urlPath := A_LoopFileFullPath
-        try {
-            url := Trim(IniRead(urlPath, "InternetShortcut", "URL", ""))
-        } catch {
-            url := ""
-        }
-        if (url = "")
-            continue
-        metaPath := defaultDir "\" id ".ini"
-        title := id
-        exeHint := ""
-        if FileExist(metaPath) {
-            try {
-                t := Trim(IniRead(metaPath, "Service", "Title", ""))
-                if (t != "")
-                    title := t
-            } catch {
+            Loop Files, pwaDir "\*.lnk" {
+                hasLinks := true
+                break
             }
-            try {
-                exeHint := Trim(IniRead(metaPath, "Service", "Exe", ""))
-            } catch {
-                exeHint := ""
-            }
-        }
-        browserExe := ""
-        if (exeHint = "" || StrLower(exeHint) = "default" || StrLower(exeHint) = "auto") {
-            if (defaultBrowserCache = "")
-                defaultBrowserCache := ResolveBrowserExeForSeed("")
-            browserExe := defaultBrowserCache
-        } else {
-            browserExe := ResolveBrowserExeForSeed(exeHint)
-            if (browserExe = "")
-                browserExe := ResolveBrowserExeForSeed("")
-        }
-        if (browserExe = "" || !FileExist(browserExe))
-            continue
-        args := AppModeArgsForUrl(url)
-        if (args = "")
-            continue
-        exeName := ExeNameFromExePath(browserExe)
-        try {
-            FileCreateShortcut(browserExe, pwaDir "\" id ".lnk", , args)
-            IniWrite(title, listPath, id, "title")
-            IniWrite(id, listPath, id, "file")
-            IniWrite(exeName, listPath, id, "exe")
-            seeded++
         } catch {
         }
     }
-    if (seeded = 0)
+    browserPath := ""
+    try browserPath := Trim(IniRead(configPath, "Settings", "BrowserExe", ""))
+    if (browserPath = "" || !FileExist(browserPath))
+        browserPath := ResolveBrowserExeForSeed("")
+    if (browserPath = "" || !FileExist(browserPath))
+        browserPath := GetFallbackBrowserExePath()
+    if (browserPath = "" || !FileExist(browserPath))
         return
-    g_defaultPwaSeeded := true
-    if FileExist(configPath) {
-        try IniWrite("True", configPath, "Settings", "SeedDefaultPwaDone")
-        catch {
-        }
-    }
+    if (hasLinks && g_defaultPwaSeeded)
+        return
+    SeedPwaFromDefault(browserPath)
 }
 
 GetFriendlyName(hk) {
@@ -1612,6 +1857,7 @@ ReadConfigIniValues() {
         memoryVal := IsChecked(IniRead(configPath, "Settings", "MemoryPurge"))
         actionVal := IniRead(configPath, "Settings", "ActionClose", "False")
         themeModeVal := IniRead(configPath, "Settings", "ThemeMode", "System")
+        browserPath := IniRead(configPath, "Settings", "BrowserExe", "")
     } catch {
         hotkeyVal := "#c"
         lastService := serviceList[1]
@@ -1620,6 +1866,7 @@ ReadConfigIniValues() {
         memoryVal := true
         actionVal := "False"
         themeModeVal := "System"
+        browserPath := ""
     }
     defIdx := 1
     for i, name in serviceList {
@@ -1627,7 +1874,8 @@ ReadConfigIniValues() {
             defIdx := i
     }
     actionIdx := (actionVal = "True") ? 1 : 2
-    return { hotkeyVal: hotkeyVal, lastService: lastService, autoStartVal: autoStartVal, showTrayVal: showTrayVal, memoryVal: memoryVal, actionVal: actionVal, themeModeVal: themeModeVal, defIdx: defIdx, actionIdx: actionIdx, serviceList: serviceList }
+    browserIdx := BrowserIndexFromConfig(browserPath)
+    return { hotkeyVal: hotkeyVal, lastService: lastService, autoStartVal: autoStartVal, showTrayVal: showTrayVal, memoryVal: memoryVal, actionVal: actionVal, themeModeVal: themeModeVal, browserPath: browserPath, browserIdx: browserIdx, defIdx: defIdx, actionIdx: actionIdx, serviceList: serviceList }
 }
 
 EnsureSelectedServiceConfigSynced(cfgObj) {
@@ -1666,7 +1914,7 @@ WriteSettingsEntries(entries) {
 }
 
 Cfg_EnsureConfigVersion(configPath)
-TrySeedDefaultPwaFromDefaultFolder()
+    BuildBrowserOptions()
 accentColor := GetWinAccentColor(), serviceList := GetServicesList()
 g_theme := Theme_ReadFromConfig(configPath, accentColor)
 emptyText := GetLangText("Main", "EmptyServiceList")
@@ -1678,11 +1926,14 @@ if (NeedsFirstRunHotkeyChoice()) {
     WriteFirstRunHotkeyBaseline(fr["hotkey"], fr["autoStart"], fr["showTray"], fr["memory"])
 }
 
-cfg := ReadConfigIniValues()
-serviceList := cfg.serviceList
-EnsureSelectedServiceConfigSynced(cfg)
-cfg := ReadConfigIniValues()
-serviceList := cfg.serviceList
+    cfg := ReadConfigIniValues()
+    serviceList := cfg.serviceList
+    EnsureSelectedServiceConfigSynced(cfg)
+    cfg := ReadConfigIniValues()
+    serviceList := cfg.serviceList
+    EnsureRuntimeBrowserSync()
+    SetPwaDirForBrowser(cfg.browserPath)
+    TrySeedDefaultPwaFromDefaultFolder()
 hotkeyVal := cfg.hotkeyVal
 lastService := cfg.lastService
 autoStartVal := cfg.autoStartVal
@@ -1690,6 +1941,8 @@ showTrayVal := cfg.showTrayVal
 memoryVal := cfg.memoryVal
 actionVal := cfg.actionVal
 themeModeVal := cfg.themeModeVal
+browserPathVal := cfg.browserPath
+browserIdx := cfg.browserIdx
 defIdx := cfg.defIdx
 actionIdx := cfg.actionIdx
 actionOptions := [GetLangText("Main", "ActionClose"), GetLangText("Main", "ActionMinimize")]
@@ -1698,6 +1951,7 @@ serviceDisplay := BuildServiceDDLContent(serviceList, serviceFieldChars)
 actionField := Max(StrLen(actionOptions[1]), StrLen(actionOptions[2])) + 4
 actionDisplay := [PadRowCenter(actionOptions[1], actionField), PadRowCenter(actionOptions[2], actionField)]
 themeDisplay := ThemeOptionsDisplay()
+browserDisplay := BuildBrowserOptions()
 
 myGui := Gui("+AlwaysOnTop -Resize -Caption", GetLangText("Main", "WindowTitleMain"))
 Theme_ApplyBaseGui(myGui, g_theme), myGui.MarginX := 30, myGui.MarginY := 4
@@ -1742,6 +1996,10 @@ btnActionSelect.OnEvent("Click", ToggleActionList)
 btnThemeSelect := AddCustomButton(myGui, "BtnThemeSelect", "x+10 yp w205 h32 Hidden Center", "", g_theme)
 btnThemeSelect.OnEvent("Click", ToggleThemeList)
 
+myGui.Add("Text", "vBrowserText xm w" UI_BASE_WIDTH " y+10 Hidden Center +0x200", BrowserCaptionText())
+btnBrowserSelect := AddCustomButton(myGui, "BtnBrowserSelect", "xm w" UI_BASE_WIDTH " h32 Hidden Center y+6", "", g_theme)
+btnBrowserSelect.OnEvent("Click", ToggleBrowserList)
+
 hkLabel := myGui.Add("Text", "vHkLabel xm w205 y+15 Hidden +0x200", HotkeyInvokeLabel() . GetFriendlyName(hotkeyVal))
 
 btnCap := AddCustomButton(myGui, "BtnCap", "x+10 yp w205 h" UI_ROW_HEIGHT " Hidden Center", G_IC_KEY GetLangTextOrDefault("Main", "ChangeHotkeyButton", "Изменить хоткей", "Change hotkey"), g_theme)
@@ -1769,11 +2027,14 @@ actionListBox := myGui.Add("ListBox", "vActionListBox x0 y0 w120 h90 Hidden", []
 
 themeListBox := myGui.Add("ListBox", "vThemeListBox x0 y0 w120 h95 Hidden", [])
 
+browserListBox := myGui.Add("ListBox", "vBrowserListBox x0 y0 w120 h95 Hidden", [])
+
 ServicePickerSetItems(myGui, serviceList, defIdx)
 g_actionSelectIdx := actionIdx
 g_themeSelectIdx := ThemeModeToIndex(themeModeVal)
 SimplePickerSetItems(myGui, "ActionListBox", "BtnActionSelect", actionOptions, g_actionSelectIdx)
 SimplePickerSetItems(myGui, "ThemeListBox", "BtnThemeSelect", themeDisplay, g_themeSelectIdx)
+BrowserPickerSetItems(myGui, browserIdx)
 
 StoreSettingsPositions() {
     global myGui, settingsOrigPos, settingsControlNames, ctx
@@ -1837,7 +2098,7 @@ ShowSettingsView(*) {
 }
 
 LoadGuiFromConfig() {
-    global myGui, g_suppressSiteChange, serviceList, emptyText, g_serviceSelectIdx, g_actionSelectIdx, g_themeSelectIdx, actionOptions, themeDisplay
+    global myGui, g_suppressSiteChange, serviceList, emptyText, g_serviceSelectIdx, g_actionSelectIdx, g_themeSelectIdx, g_browserSelectIdx, actionOptions, themeDisplay
     g_suppressSiteChange := true
     o := ReadConfigIniValues()
     serviceList := o.serviceList
@@ -1848,8 +2109,10 @@ LoadGuiFromConfig() {
     myGui["ActiveHotkeyText"].Value := GetHeaderHotkeyText(o.hotkeyVal)
     g_actionSelectIdx := o.actionIdx
     g_themeSelectIdx := ThemeModeToIndex(o.themeModeVal)
+    g_browserSelectIdx := o.browserIdx
     SimplePickerSetItems(myGui, "ActionListBox", "BtnActionSelect", actionOptions, g_actionSelectIdx)
     SimplePickerSetItems(myGui, "ThemeListBox", "BtnThemeSelect", themeDisplay, g_themeSelectIdx)
+    BrowserPickerSetItems(myGui, g_browserSelectIdx)
     RefreshPickerLayouts()
     myGui["AutoStart"].Value := o.autoStartVal ? 1 : 0
     myGui["ShowTray"].Value := o.showTrayVal ? 1 : 0
@@ -1877,22 +2140,30 @@ ApplyServiceSelection(*) {
 }
 
 ApplySettings(returnToMain := true) {
-    global myGui, configPath, listPath, g_theme, g_serviceSelectIdx, g_actionSelectIdx, g_themeSelectIdx
+    global myGui, configPath, listPath, g_theme, g_serviceSelectIdx, g_actionSelectIdx, g_themeSelectIdx, g_browserSelectIdx
     vals := myGui.Submit(false)
     SetStatusApplying()
     selectedSection := SiteSelectIndexToName(g_serviceSelectIdx)
     emptyText := GetLangText("Main", "EmptyServiceList")
     svc := GetSelectedServiceData(selectedSection, emptyText)
+    oldBrowserPath := ""
+    try oldBrowserPath := Trim(IniRead(configPath, "Settings", "BrowserExe", ""))
 
     isClosing := (g_actionSelectIdx = 1) ? "True" : "False"
     hkStored := NormalizeHotkeyFromUi(vals.Hotkey)
     themeMode := ThemeIndexToMode(g_themeSelectIdx)
-    configs := [["AppTitle", svc.title], ["FileName", svc.file], ["ExeName", svc.exe], ["Hotkey", hkStored], ["AutoStart", vals.AutoStart ? "True" : "False"], ["ShowTray", vals.ShowTray ? "True" : "False"], ["MemoryPurge", vals.MemoryPurge ? "True" : "False"], ["ActionClose", isClosing], ["ThemeMode", themeMode], ["SelectedService", svc.selected]]
+    browserPath := BrowserPathFromIndex(g_browserSelectIdx)
+    configs := [["AppTitle", svc.title], ["FileName", svc.file], ["ExeName", svc.exe], ["Hotkey", hkStored], ["AutoStart", vals.AutoStart ? "True" : "False"], ["ShowTray", vals.ShowTray ? "True" : "False"], ["MemoryPurge", vals.MemoryPurge ? "True" : "False"], ["ActionClose", isClosing], ["ThemeMode", themeMode], ["BrowserExe", browserPath], ["SelectedService", svc.selected]]
     try IniDelete(configPath, "Settings", "IgnoreBrowser")
     WriteSettingsEntries(configs)
     try IniDelete(configPath, "Settings", "SkipBrowserTabTitles")
     g_theme := Theme_ReadFromConfig(configPath, GetWinAccentColor())
     ApplyThemeToMainGui()
+    if (browserPath != "" && StrLower(browserPath) != StrLower(oldBrowserPath)) {
+        SetPwaDirForBrowser(browserPath)
+        RewriteServiceExeNamesForBrowser(browserPath)
+        TrySeedDefaultPwaFromDefaultFolder()
+    }
     LoadGuiFromConfig()
     SetAutoStart(vals.AutoStart)
     StopService()

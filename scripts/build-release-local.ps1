@@ -8,6 +8,11 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $distRoot = Join-Path $repoRoot "dist"
+$versionRoot = if ([string]::IsNullOrWhiteSpace($Version)) {
+    Join-Path $distRoot "release"
+} else {
+    Join-Path $distRoot $Version
+}
 $releaseRoot = if ([string]::IsNullOrWhiteSpace($Version)) {
     Join-Path $distRoot "release\GoodByCopilot"
 } else {
@@ -20,8 +25,8 @@ $bundleName = if ([string]::IsNullOrWhiteSpace($Version)) {
 }
 $bundlePath = Join-Path $distRoot $bundleName
 
-if (Test-Path -LiteralPath $releaseRoot) {
-    Remove-Item -LiteralPath $releaseRoot -Recurse -Force
+if (Test-Path -LiteralPath $versionRoot) {
+    Remove-Item -LiteralPath $versionRoot -Recurse -Force
 }
 
 if (-not (Test-Path -LiteralPath $Ahk2ExePath)) {
