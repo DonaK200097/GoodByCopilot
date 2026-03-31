@@ -1144,12 +1144,7 @@ ToggleServiceByStatusBar(*) {
 }
 
 CloseMainGui(*) {
-    global actionVal, myGui
-    if (actionVal = "True") {
-        ExitApp()
-        return
-    }
-    try myGui.Minimize()
+    ExitApp()
 }
 
 StartWindowDrag(*) {
@@ -1706,7 +1701,7 @@ themeDisplay := ThemeOptionsDisplay()
 
 myGui := Gui("+AlwaysOnTop -Resize -Caption", GetLangText("Main", "WindowTitleMain"))
 Theme_ApplyBaseGui(myGui, g_theme), myGui.MarginX := 30, myGui.MarginY := 4
-myGui.OnEvent("Close", CloseMainGui)
+myGui.OnEvent("Close", (*) => ExitApp())
 ctx["myGui"] := myGui
 
 dragArea := myGui.Add("Text", "vDragArea xm y2 w" UI_BASE_WIDTH " h" UI_TITLEBAR_HEIGHT " +0x200 Background" g_theme["BgColor"], "")
@@ -1717,8 +1712,8 @@ appTitleText.OnEvent("Click", StartWindowDrag)
 activeHotkeyText := myGui.Add("Text", "vActiveHotkeyText x16 y2 w180 h" UI_TITLEBAR_HEIGHT " Right +0x200 Background" g_theme["BgColor"], GetHeaderHotkeyText(hotkeyVal))
 activeHotkeyText.OnEvent("Click", StartWindowDrag)
 btnWindowClose := AddCustomButton(myGui, "BtnWindowClose", "x16 y2 w74 h48 Center", G_IC_CLS, g_theme, "close")
-btnWindowClose.OnEvent("Click", CloseMainGui)
-btnWindowClose.OnEvent("DoubleClick", CloseMainGui)
+btnWindowClose.OnEvent("Click", (*) => ExitApp())
+btnWindowClose.OnEvent("DoubleClick", (*) => ExitApp())
 
 myGui.SetFont("s11 w400 c" g_theme["TextPrimary"], g_theme["FontFamilyBase"])
 statusBar := myGui.Add("Text", "vStatusBar xm y+10 w" UI_BASE_WIDTH " h" UI_CLOSE_SIZE " Background" g_theme["StatusActiveBg"] " c" g_theme["StatusActiveText"] " Center +0x200", GetLangText("Main", "StatusActive"))
