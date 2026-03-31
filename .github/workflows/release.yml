@@ -13,15 +13,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify release artifacts
+      - name: Install AutoHotkey v2
         shell: pwsh
         run: |
-          $required = @("GoodByCopilot.exe", "CoreGBC.exe")
-          foreach ($file in $required) {
-            if (-not (Test-Path -LiteralPath $file)) {
-              throw "Missing release artifact: $file"
-            }
+          $version = "2.0.19"
+          $installer = "AutoHotkey_$version`_setup.exe"
+          Invoke-WebRequest -Uri "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$version/$installer" -OutFile $installer
+          Start-Process -FilePath (Join-Path $PWD $installer) -ArgumentList "/S" -Wait
+
+      - name: Install Ahk2Exe
+        shell: pwsh
+        run: |
+          $ahk2exeUrl = "https://github.com/AutoHotkey/Ahk2Exe/releases/latest/download/Ahk2Exe.exe"
+          $compilerDir = Join-Path $env:ProgramFiles "AutoHotkey\Compiler"
+          New-Item -ItemType Directory -Force -Path $compilerDir | Out-Null
+          Invoke-WebRequest -Uri $ahk2exeUrl -OutFile (Join-Path $compilerDir "Ahk2Exe.exe")
+
+      - name: Compile AHK v2 binaries
+        shell: pwsh
+        run: |
+          $compiler = Join-Path $env:ProgramFiles "AutoHotkey\Compiler\Ahk2Exe.exe"
+          if (-not (Test-Path -LiteralPath $compiler)) {
+            throw "Compiler not found: $compiler"
           }
+
+          & $compiler /in "GoodByCopilot.ahk" /out "GoodByCopilot.exe"
+          & $compiler /in "Core\CoreGBC.ahk" /out "CoreGBC.exe"
 
       - name: Build release zip
         shell: pwsh
