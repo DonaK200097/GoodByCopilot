@@ -7,70 +7,84 @@
 </p>
 
 <p align="center">
-  <b>Утилита для быстрого запуска и управления AI-сервисами в Windows.</b>
+  <a href="./README.md"><b>English</b></a> ·
+  <a href="./README.ru.md"><b>Русский</b></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/DonaK200097/GoodByCopilot/releases/latest"><b>Скачать / Download</b></a>
+  <b>A compact Windows tool for launching and managing AI services.</b>
 </p>
 
-GoodByCopilot объединяет в одном компактном окне запуск сервисов, управление их списком, настройки интерфейса и работу фонового `CoreGBC`-движка.  
-Программа рассчитана на Windows и помогает держать под рукой несколько AI-сервисов без лишних ручных действий.
+<p align="center">
+  <a href="https://github.com/DonaK200097/GoodByCopilot/releases/latest"><b>Download</b></a>
+</p>
 
-## Что умеет
+GoodByCopilot brings service launching, service list management, interface settings, and the background `CoreGBC` engine into one small Windows app.  
+It is designed to keep multiple AI services close at hand without extra manual steps.
 
-- Открывать и переключать AI-сервисы из единого интерфейса
-- Управлять фоновым `CoreGBC`-движком
-- Сохранять сервисы, настройки и состояние окна
-- Работать с hotkey, tray и автозапуском
-- Переключать тему и язык интерфейса
+## What it does
 
-## Как это работает
+- Opens and switches AI services from a single interface
+- Controls the background `CoreGBC` engine
+- Persists services, settings, and window state
+- Supports hotkey, tray, and auto-start
+- Switches theme and interface language
 
-1. Вы запускаете `GoodByCopilot.exe` или исходный `GoodByCopilot.ahk`.
-2. Приложение читает конфигурацию из `Core\config.ini` и список сервисов из `Core\list.ini`.
-3. Через `CoreGBC` оно открывает, переключает и закрывает нужный сервис.
-4. Настройки, тема, хоткей и состояние окна сохраняются автоматически.
+## How it works
 
-## Основные возможности
+1. You start `GoodByCopilot.exe` or the source `GoodByCopilot.ahk`.
+2. The app reads configuration from `Core\config.ini` and services from `Core\list.ini`.
+3. `CoreGBC` launches, switches, and closes the selected service.
+4. Theme, hotkey, and window state are saved automatically.
 
-- Управление списком AI-сервисов
-- Запуск и остановка фонового движка
-- Быстрый выбор активного сервиса
-- Настройка горячей клавиши
-- Автозапуск вместе с Windows
-- Значок в tray и управление окном из трея
-- Светлая, тёмная и системная тема
-- Русский и английский интерфейс
-- Сохранение состояния окна и пользовательских настроек
+## Screenshots
 
-## Что внутри
+> Put interface images in `assets/screenshots/` and GitHub will render them here.
 
-- `GoodByCopilot.ahk` - основная точка входа и GUI
-- `Core\CoreGBC.ahk` - логика движка
-- `Core\Config.ahk` - конфигурация и миграции
-- `Core\Service.ahk` - запуск, остановка и автозапуск
-- `Core\Locale.ahk` - определение языка интерфейса
-- `Core\Theme.ahk` - оформление и палитра
-- `Core\UI.ahk` - вспомогательные функции интерфейса
+| Main window | Settings |
+| --- | --- |
+| ![Main window](assets/screenshots/main-window.png) | ![Settings](assets/screenshots/settings-window.png) |
 
-## Сборка релиза
+## Highlights
 
-Релизный архив собирается локально из скомпилированных бинарников.
+- Service list management
+- Background engine control
+- Quick active-service switching
+- Hotkey configuration
+- Auto-start with Windows
+- Tray icon and tray-based control
+- Light, dark, and system themes
+- Russian and English UI
+- Persistent window state and user settings
 
-1. Скомпилируйте `GoodByCopilot.ahk` в `GoodByCopilot.exe`.
-2. Скомпилируйте `Core\CoreGBC.ahk` в `CoreGBC.exe`.
-3. Запустите `scripts\build-release-local.ps1`.
+## What's inside
 
-Скачать последний релиз всегда можно по кнопке выше. Прямая ссылка на архив:
+- `GoodByCopilot.ahk` - main entry point and UI
+- `Core\CoreGBC.ahk` - engine logic
+- `Core\Config.ahk` - configuration and migration helpers
+- `Core\Service.ahk` - engine start/stop and auto-start helpers
+- `Core\Locale.ahk` - interface language detection
+- `Core\Theme.ahk` - palette and styling
+- `Core\UI.ahk` - UI layout helpers
+
+## Release build
+
+Release archives are built locally from compiled binaries.
+
+1. Compile `GoodByCopilot.ahk` to `GoodByCopilot.exe`.
+2. Compile `Core\CoreGBC.ahk` to `CoreGBC.exe`.
+3. Run `scripts\build-release-local.ps1`.
+
+The latest release is always available from the button above. Direct archive link:
 
 `https://github.com/DonaK200097/GoodByCopilot/releases/latest/download/GoodByCopilot-release.zip`
 
-## Требования
+## Requirements
 
 - Windows
 - AutoHotkey v2.0
 
-## Примечание
+## Note
 
-Проект намеренно Windows-ориентированный. Часть логики завязана на процессы, окна и локальные INI-файлы, поэтому поведение зависит от браузера и формата заголовков сервисов.
+This project is intentionally Windows-only. Some logic depends on processes, windows, and local INI files, so behavior can vary with the browser and service title format.
+
