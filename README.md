@@ -79,7 +79,7 @@ Release archives are built locally from compiled binaries.
 The release zip includes:
 
 - `GoodByCopilot.exe`
-- `CoreGBC.exe`
+- `Core\CoreGBC.exe`
 - `Core\default\`
 - `Core\LangPackage\`
 
@@ -166,6 +166,6 @@ GoodByCopilot - это небольшая утилита на AutoHotkey v2 дл
 В архив релиза входят:
 
 - `GoodByCopilot.exe`
-- `CoreGBC.exe`
+- `Core\CoreGBC.exe`
 - `Core\default\`
 - `Core\LangPackage\`
