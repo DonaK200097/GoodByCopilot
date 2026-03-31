@@ -29,6 +29,19 @@ foreach ($file in $requiredFiles) {
     Copy-Item -LiteralPath $source -Destination (Join-Path $versionRoot $file) -Force
 }
 
+$resourceDirs = @(
+    @{ Source = (Join-Path $repoRoot "Core\default"); Destination = (Join-Path $versionRoot "Core\default") },
+    @{ Source = (Join-Path $repoRoot "Core\LangPackage"); Destination = (Join-Path $versionRoot "Core\LangPackage") }
+)
+
+foreach ($dir in $resourceDirs) {
+    if (-not (Test-Path -LiteralPath $dir.Source)) {
+        throw "Missing release resource directory: $($dir.Source)"
+    }
+    New-Item -ItemType Directory -Force -Path $dir.Destination | Out-Null
+    Copy-Item -LiteralPath (Join-Path $dir.Source "*") -Destination $dir.Destination -Force
+}
+
 if (Test-Path -LiteralPath $bundlePath) {
     Remove-Item -LiteralPath $bundlePath -Force
 }
