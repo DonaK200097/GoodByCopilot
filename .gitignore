@@ -9,3 +9,8 @@ Core/PWA/
 !Core/default/
 !Core/default/*.ini
 !Core/default/*.url
+
+# Build and release outputs
+dist/
+release/
+*.exe
