@@ -1,4 +1,4 @@
-# GoodByCopilot — Lightweight AI assistant launcher for Windows
+# GoodByCopilot — Lightweight AI assistant launcher
 
 <p align="center">
   <img src="https://img.shields.io/badge/AutoHotkey-v2-9cf?style=for-the-badge" alt="AutoHotkey v2" />
