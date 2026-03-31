@@ -68,6 +68,21 @@ Default service descriptors live in `Core\default\` and are stored as `.ini` and
 - Some operations rely on process detection and window matching, so behavior can depend on the browser and service title format.
 - The codebase is structured for practical use rather than as a general-purpose framework.
 
+## Release Build
+
+Release archives are built locally from compiled binaries.
+
+1. Compile `GoodByCopilot.ahk` to `GoodByCopilot.exe`.
+2. Compile `Core\CoreGBC.ahk` to `CoreGBC.exe`.
+3. Run `scripts\build-release-local.ps1`.
+
+The release zip includes:
+
+- `GoodByCopilot.exe`
+- `CoreGBC.exe`
+- `Core\default\`
+- `Core\LangPackage\`
+
 ---
 
 # GoodByCopilot
@@ -139,3 +154,18 @@ GoodByCopilot - это небольшая утилита на AutoHotkey v2 дл
 - Проект рассчитан только на Windows.
 - Часть логики опирается на поиск процессов и сопоставление заголовков окон, поэтому поведение зависит от браузера и формата названия сервиса.
 - Кодовая база сделана как прикладной инструмент, а не как универсальный framework.
+
+## Сборка релиза
+
+Релизный архив собирается локально из готовых бинарников.
+
+1. Скомпилируйте `GoodByCopilot.ahk` в `GoodByCopilot.exe`.
+2. Скомпилируйте `Core\CoreGBC.ahk` в `CoreGBC.exe`.
+3. Запустите `scripts\build-release-local.ps1`.
+
+В архив релиза входят:
+
+- `GoodByCopilot.exe`
+- `CoreGBC.exe`
+- `Core\default\`
+- `Core\LangPackage\`
