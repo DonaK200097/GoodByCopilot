@@ -37,14 +37,6 @@ It is designed to keep multiple AI services close at hand without extra manual s
 3. `CoreGBC` launches, switches, and closes the selected service.
 4. Theme, hotkey, and window state are saved automatically.
 
-## Screenshots
-
-> Put interface images in `assets/screenshots/` and GitHub will render them here.
-
-| Main window | Settings |
-| --- | --- |
-| ![Main window](assets/screenshots/main-window.png) | ![Settings](assets/screenshots/settings-window.png) |
-
 ## Highlights
 
 - Service list management
