@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/DonaK200097/GoodByCopilot/releases/latest/download/GoodByCopilot-release.zip"><b>Скачать / Download</b></a>
+  <a href="https://github.com/DonaK200097/GoodByCopilot/releases/latest"><b>Скачать / Download</b></a>
 </p>
 
 GoodByCopilot объединяет в одном компактном окне запуск сервисов, управление их списком, настройки интерфейса и работу фонового `CoreGBC`-движка.  
@@ -62,7 +62,7 @@ GoodByCopilot объединяет в одном компактном окне �
 2. Скомпилируйте `Core\CoreGBC.ahk` в `CoreGBC.exe`.
 3. Запустите `scripts\build-release-local.ps1`.
 
-Скачать последний релиз всегда можно по кнопке выше. Она ведёт на:
+Скачать последний релиз всегда можно по кнопке выше. Прямая ссылка на архив:
 
 `https://github.com/DonaK200097/GoodByCopilot/releases/latest/download/GoodByCopilot-release.zip`
 
