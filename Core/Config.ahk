@@ -1,5 +1,5 @@
 Cfg_TargetConfigVersion() {
-    return 3
+    return 4
 }
 
 Cfg_IsChecked(val) {
@@ -86,6 +86,21 @@ Cfg_MigrateToV3(configPath) {
     }
 }
 
+Cfg_MigrateToV4(configPath) {
+    defaults := Map(
+        "AutoStart", "True",
+        "ShowTray", "True",
+        "ActionClose", "False"
+    )
+    for key, value in defaults {
+        try {
+            _ := IniRead(configPath, "Settings", key)
+        } catch {
+            IniWrite(value, configPath, "Settings", key)
+        }
+    }
+}
+
 Cfg_EnsureConfigVersion(configPath) {
     if !FileExist(configPath)
         return
@@ -99,5 +114,7 @@ Cfg_EnsureConfigVersion(configPath) {
         Cfg_MigrateToV2(configPath)
     if (ver < 3)
         Cfg_MigrateToV3(configPath)
+    if (ver < 4)
+        Cfg_MigrateToV4(configPath)
     IniWrite(String(Cfg_TargetConfigVersion()), configPath, "Settings", "ConfigVersion")
 }

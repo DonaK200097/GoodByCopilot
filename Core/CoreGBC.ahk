@@ -34,10 +34,10 @@ try {
     shortcutBase := IniRead(configPath, "Settings", "FileName", "gemini")
     exeName      := NormalizeExeName(IniRead(configPath, "Settings", "ExeName", ""))
     customHK     := IniRead(configPath, "Settings", "Hotkey", "#c")
-    showTray     := IsChecked(IniRead(configPath, "Settings", "ShowTray", "False"))
+    showTray     := IsChecked(IniRead(configPath, "Settings", "ShowTray", "True"))
     soundOn      := IsChecked(IniRead(configPath, "Settings", "SoundFeedback", "True"))
     memoryPurge  := IsChecked(IniRead(configPath, "Settings", "MemoryPurge", "True"))
-    actionClose  := IsChecked(IniRead(configPath, "Settings", "ActionClose", "True"))
+    actionClose  := IsChecked(IniRead(configPath, "Settings", "ActionClose", "False"))
 } catch {
     ExitApp()
 }

@@ -860,7 +860,7 @@ WriteFirstRunHotkeyBaseline(chosenHotkey, autoStart, showTray, memoryOn) {
     IniWrite(autoStart ? "True" : "False", configPath, "Settings", "AutoStart")
     IniWrite(showTray ? "True" : "False", configPath, "Settings", "ShowTray")
     IniWrite(memoryOn ? "True" : "False", configPath, "Settings", "MemoryPurge")
-    IniWrite("True", configPath, "Settings", "ActionClose")
+    IniWrite("False", configPath, "Settings", "ActionClose")
     if (g_defaultPwaSeeded)
         IniWrite("True", configPath, "Settings", "SeedDefaultPwaDone")
     if (lastSvc != emptyText) {
@@ -961,8 +961,8 @@ ShowFirstRunWizard() {
     dlg.Add("Text", "xm y+14 w420", FirstRunWizardLine("HotkeyFixed"))
     dlg.SetFont("s9 w400 c" g_theme["TextSecondary"], g_theme["FontFamilyBase"])
     dlg.Add("Text", "xm y+4 w420", FirstRunWizardLine("HotkeyHint"))
-    dlg.Add("CheckBox", "vAutoStart xm y+14 w420", GetLangText("Main", "AutoStart"))
-    dlg.Add("CheckBox", "vShowTray xm y+8 w420", GetLangText("Main", "ShowTray"))
+    dlg.Add("CheckBox", "vAutoStart xm y+14 w420 Checked", GetLangText("Main", "AutoStart"))
+    dlg.Add("CheckBox", "vShowTray xm y+8 w420 Checked", GetLangText("Main", "ShowTray"))
     dlg.Add("CheckBox", "vMemoryPurge xm y+8 w420 Checked", GetLangText("Main", "MemoryPurge"))
     btnOk := AddCustomButton(dlg, "BtnFirstRunContinue", "w220 h38 Center xm+100 y+16", G_IC_OK FirstRunWizardLine("ContinueButton"), g_theme, "primary")
     btnOk.OnEvent("Click", (*) => FirstRunWizardTrySubmit(dlg, st))
@@ -1144,7 +1144,12 @@ ToggleServiceByStatusBar(*) {
 }
 
 CloseMainGui(*) {
-    ExitApp()
+    global actionVal, myGui
+    if (actionVal = "True") {
+        ExitApp()
+        return
+    }
+    try myGui.Minimize()
 }
 
 StartWindowDrag(*) {
@@ -1607,18 +1612,18 @@ ReadConfigIniValues() {
     try {
         hotkeyVal := IniRead(configPath, "Settings", "Hotkey")
         lastService := IniRead(configPath, "Settings", "SelectedService")
-        autoStartVal := IsChecked(IniRead(configPath, "Settings", "AutoStart"))
-        showTrayVal := IsChecked(IniRead(configPath, "Settings", "ShowTray"))
+        autoStartVal := IsChecked(IniRead(configPath, "Settings", "AutoStart", "True"))
+        showTrayVal := IsChecked(IniRead(configPath, "Settings", "ShowTray", "True"))
         memoryVal := IsChecked(IniRead(configPath, "Settings", "MemoryPurge"))
-        actionVal := IniRead(configPath, "Settings", "ActionClose")
+        actionVal := IniRead(configPath, "Settings", "ActionClose", "False")
         themeModeVal := IniRead(configPath, "Settings", "ThemeMode", "System")
     } catch {
         hotkeyVal := "#c"
         lastService := serviceList[1]
-        autoStartVal := false
-        showTrayVal := false
+        autoStartVal := true
+        showTrayVal := true
         memoryVal := true
-        actionVal := "True"
+        actionVal := "False"
         themeModeVal := "System"
     }
     defIdx := 1
@@ -1701,7 +1706,7 @@ themeDisplay := ThemeOptionsDisplay()
 
 myGui := Gui("+AlwaysOnTop -Resize -Caption", GetLangText("Main", "WindowTitleMain"))
 Theme_ApplyBaseGui(myGui, g_theme), myGui.MarginX := 30, myGui.MarginY := 4
-myGui.OnEvent("Close", (*) => ExitApp())
+myGui.OnEvent("Close", CloseMainGui)
 ctx["myGui"] := myGui
 
 dragArea := myGui.Add("Text", "vDragArea xm y2 w" UI_BASE_WIDTH " h" UI_TITLEBAR_HEIGHT " +0x200 Background" g_theme["BgColor"], "")
@@ -1712,8 +1717,8 @@ appTitleText.OnEvent("Click", StartWindowDrag)
 activeHotkeyText := myGui.Add("Text", "vActiveHotkeyText x16 y2 w180 h" UI_TITLEBAR_HEIGHT " Right +0x200 Background" g_theme["BgColor"], GetHeaderHotkeyText(hotkeyVal))
 activeHotkeyText.OnEvent("Click", StartWindowDrag)
 btnWindowClose := AddCustomButton(myGui, "BtnWindowClose", "x16 y2 w74 h48 Center", G_IC_CLS, g_theme, "close")
-btnWindowClose.OnEvent("Click", (*) => ExitApp())
-btnWindowClose.OnEvent("DoubleClick", (*) => ExitApp())
+btnWindowClose.OnEvent("Click", CloseMainGui)
+btnWindowClose.OnEvent("DoubleClick", CloseMainGui)
 
 myGui.SetFont("s11 w400 c" g_theme["TextPrimary"], g_theme["FontFamilyBase"])
 statusBar := myGui.Add("Text", "vStatusBar xm y+10 w" UI_BASE_WIDTH " h" UI_CLOSE_SIZE " Background" g_theme["StatusActiveBg"] " c" g_theme["StatusActiveText"] " Center +0x200", GetLangText("Main", "StatusActive"))
