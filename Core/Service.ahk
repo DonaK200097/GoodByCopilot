@@ -98,13 +98,13 @@ Svc_StartService(coreDir, &enginePid) {
 
 Svc_StopService(&enginePid) {
     if Svc_IsPidRunning(enginePid)
-        try RunWait("taskkill /f /pid " enginePid " /t", , "Hide")
+        try RunWait("taskkill /f /pid " enginePid, , "Hide")
     if Svc_IsServiceRunning()
-        try RunWait("taskkill /f /im CoreGBC* /t", , "Hide")
+        try RunWait("taskkill /f /im CoreGBC*", , "Hide")
     try {
         q := "SELECT * FROM Win32_Process WHERE CommandLine LIKE '%CoreGBC.ahk%'"
         for p in ComObjGet("winmgmts:").ExecQuery(q)
-            RunWait("taskkill /f /pid " p.ProcessId " /t", , "Hide")
+            RunWait("taskkill /f /pid " p.ProcessId, , "Hide")
     }
     enginePid := 0
 }

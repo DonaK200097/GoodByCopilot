@@ -495,6 +495,24 @@ BrowserIndexFromConfig(browserPath) {
     return 1
 }
 
+BrowserPathFromSelectionValue(selection) {
+    global g_browserPaths, g_browserLabels
+    sel := Trim(String(selection))
+    if (sel = "")
+        return ""
+    if sel is Integer
+        return BrowserPathFromIndex(sel)
+    for i, label in g_browserLabels {
+        if (StrLower(Trim(String(label))) = StrLower(sel))
+            return BrowserPathFromIndex(i)
+    }
+    for i, path in g_browserPaths {
+        if (StrLower(Trim(String(path))) = StrLower(sel))
+            return path
+    }
+    return ""
+}
+
 BrowserHintFromPath(browserPath) {
     p := StrLower(Trim(String(browserPath)))
     if (p = "")
@@ -1092,7 +1110,7 @@ NeedsFirstRunHotkeyChoice() {
     return false
 }
 
-WriteFirstRunHotkeyBaseline(chosenHotkey, autoStart, showTray, memoryOn) {
+WriteFirstRunHotkeyBaseline(chosenHotkey, autoStart, showTray, memoryOn, browserPath := "") {
     global configPath, listPath, serviceList, emptyText
     lastSvc := GetPreferredDefaultService(serviceList, emptyText)
     IniWrite(chosenHotkey, configPath, "Settings", "Hotkey")
@@ -1102,6 +1120,8 @@ WriteFirstRunHotkeyBaseline(chosenHotkey, autoStart, showTray, memoryOn) {
     IniWrite(showTray ? "True" : "False", configPath, "Settings", "ShowTray")
     IniWrite(memoryOn ? "True" : "False", configPath, "Settings", "MemoryPurge")
     IniWrite("False", configPath, "Settings", "ActionClose")
+    if (browserPath != "" && FileExist(browserPath))
+        IniWrite(browserPath, configPath, "Settings", "BrowserExe")
     if (lastSvc != emptyText) {
         try {
             finalTitle := IniRead(listPath, lastSvc, "title", lastSvc)
@@ -1155,11 +1175,13 @@ FirstRunWizardTrySubmit(dlg, st) {
         return
     }
     vals := dlg.Submit(false)
+    browserPath := BrowserPathFromSelectionValue(vals.BrowserPick)
     g_frWizardResult := Map(
         "hotkey", st.hk,
         "autoStart", vals.AutoStart = 1,
         "showTray", vals.ShowTray = 1,
-        "memory", vals.MemoryPurge = 1
+        "memory", vals.MemoryPurge = 1,
+        "browserPath", browserPath
     )
     g_frWizardDone := true
     dlg.Destroy()
@@ -1184,7 +1206,7 @@ ShowFirstRunWizardError(dlg, message, title) {
 }
 
 ShowFirstRunWizard() {
-    global g_theme, g_frWizardDone, g_frWizardResult, G_IC_OK
+    global g_theme, g_frWizardDone, g_frWizardResult, G_IC_OK, g_browserLabels, g_browserPaths
     st := { hk: "<+#F23" }
     g_frWizardDone := false
     g_frWizardResult := ""
@@ -1200,6 +1222,11 @@ ShowFirstRunWizard() {
     dlg.Add("Text", "xm y+14 w420", FirstRunWizardLine("HotkeyFixed"))
     dlg.SetFont("s9 w400 c" g_theme["TextSecondary"], g_theme["FontFamilyBase"])
     dlg.Add("Text", "xm y+4 w420", FirstRunWizardLine("HotkeyHint"))
+    dlg.SetFont("s11 w600 c" g_theme["TextPrimary"], g_theme["FontFamilyBase"])
+    dlg.Add("Text", "xm y+14 w420", BrowserCaptionText())
+    browserChoice := dlg.Add("DropDownList", "vBrowserPick xm y+6 w420", g_browserLabels)
+    if (g_browserLabels.Length > 0)
+        browserChoice.Value := 1
     dlg.Add("CheckBox", "vAutoStart xm y+14 w420 Checked", GetLangText("Main", "AutoStart"))
     dlg.Add("CheckBox", "vShowTray xm y+8 w420 Checked", GetLangText("Main", "ShowTray"))
     dlg.Add("CheckBox", "vMemoryPurge xm y+8 w420 Checked", GetLangText("Main", "MemoryPurge"))
@@ -1907,9 +1934,9 @@ WriteSettingsEntries(entries) {
     Cfg_WriteSettingsEntries(configPath, entries)
 }
 
-Cfg_EnsureConfigVersion(configPath)
+    Cfg_EnsureConfigVersion(configPath)
     BuildBrowserOptions()
-accentColor := GetWinAccentColor(), serviceList := GetServicesList()
+    accentColor := GetWinAccentColor(), serviceList := GetServicesList()
 g_theme := Theme_ReadFromConfig(configPath, accentColor)
 emptyText := GetLangText("Main", "EmptyServiceList")
 if (serviceList.Length = 0)
@@ -1917,7 +1944,11 @@ if (serviceList.Length = 0)
 
 if (NeedsFirstRunHotkeyChoice()) {
     fr := ShowFirstRunWizard()
-    WriteFirstRunHotkeyBaseline(fr["hotkey"], fr["autoStart"], fr["showTray"], fr["memory"])
+    WriteFirstRunHotkeyBaseline(fr["hotkey"], fr["autoStart"], fr["showTray"], fr["memory"], fr["browserPath"])
+    if (fr["browserPath"] != "") {
+        SetPwaDirForBrowser(fr["browserPath"])
+        TrySeedDefaultPwaFromDefaultFolder()
+    }
 }
 
     cfg := ReadConfigIniValues()
@@ -2140,6 +2171,7 @@ ApplySettings(returnToMain := true) {
     selectedSection := SiteSelectIndexToName(g_serviceSelectIdx)
     emptyText := GetLangText("Main", "EmptyServiceList")
     svc := GetSelectedServiceData(selectedSection, emptyText)
+    serviceWasRunning := IsServiceRunning()
     oldBrowserPath := ""
     try oldBrowserPath := Trim(IniRead(configPath, "Settings", "BrowserExe", ""))
 
@@ -2160,17 +2192,31 @@ ApplySettings(returnToMain := true) {
     }
     LoadGuiFromConfig()
     SetAutoStart(vals.AutoStart)
-    StopService()
-    WaitForServiceState(false, 2500)
-    if (returnToMain)
-        ShowMainView()
-    if (StartService()) {
-        if WaitForServiceState(true, 3000)
-            ShowSettingsAppliedThenServiceStatus()
-        else
+    try {
+        if (svc.selected = emptyText || svc.file = "" || svc.title = "")
+            return
+        StopService()
+        WaitForServiceState(false, 2500)
+        if (returnToMain)
+            ShowMainView()
+        if (StartService()) {
+            if WaitForServiceState(true, 3000)
+                ShowSettingsAppliedThenServiceStatus()
+            else
+                UpdateServiceButton()
+        } else {
             UpdateServiceButton()
-    } else {
+        }
+    } catch as applyErr {
+        if (serviceWasRunning) {
+            try {
+                StartService()
+                WaitForServiceState(true, 2500)
+            } catch {
+            }
+        }
         UpdateServiceButton()
+        try ShowCustomPopup(applyErr.Message, GetLangText("Main", "Error"))
     }
 }
 
